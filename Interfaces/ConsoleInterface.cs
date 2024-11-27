@@ -1,9 +1,30 @@
-﻿namespace RecruitmentTask.Interfaces
+﻿using RecruitmentTask.DTOs;
+using RecruitmentTask.Services.Interfaces;
+
+namespace RecruitmentTask.Interfaces
 {
 	public class ConsoleInterface
 	{
+		private readonly IHotelService _hotelService;
+
+		public ConsoleInterface(IHotelService hotelService) 
+		{
+			_hotelService = hotelService;
+		}
+
 		public void Run()
 		{
+			List<HotelDto> hotels;
+			List<BookingDto> bookings;
+
+			bool success = _hotelService.LoadData(out hotels, out bookings);
+
+			if (!success)
+			{
+				Console.WriteLine("Failed to load JSONs files.");
+				return;
+			}
+
 			Console.WriteLine("Check room availability");
 
 			while (true)
@@ -57,7 +78,6 @@
 					Console.WriteLine($"Error: {ex.Message}");
 				}
 			}
-
 		}
 
 		private string[] ParseArguments(string input)
