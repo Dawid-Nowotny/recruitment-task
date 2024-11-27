@@ -1,12 +1,13 @@
 ﻿using Newtonsoft.Json;
 using RecruitmentTask.DTOs;
+using RecruitmentTask.Exceptions;
 using RecruitmentTask.Services.Interfaces;
 
 namespace RecruitmentTask.Services
 {
 	public class HotelService : IHotelService
 	{
-		public bool LoadData(out List<HotelDto> hotels, out List<BookingDto> bookings)
+		public bool LoadData(out List<HotelDto>? hotels, out List<BookingDto>? bookings)
 		{
 			hotels = null;
 			bookings = null;
@@ -22,24 +23,65 @@ namespace RecruitmentTask.Services
 				hotels = JsonConvert.DeserializeObject<List<HotelDto>>(hotelJson);
 				var bookingsDynamic = JsonConvert.DeserializeObject<dynamic>(bookingJson);
 
-				bookings = new List<BookingDto>();
-				foreach (var bookingDynamic in bookingsDynamic)
+				if (bookingsDynamic != null)
 				{
-					bookings.Add(BookingDto.ParseFromJson(bookingDynamic));
+					bookings = new List<BookingDto>();
+					foreach (var bookingDynamic in bookingsDynamic)
+					{
+						bookings.Add(BookingDto.ParseFromJson(bookingDynamic));
+					}
+				}
+				else
+				{
+					return false;
 				}
 
 				return true;
 			}
+			catch (FileNotFoundException ex)
+			{
+				throw new DataLoadException("One or more data files were not found.", ex);
+			}
+			catch (JsonException ex)
+			{
+				throw new DataLoadException("Error parsing JSON data.", ex);
+			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"An error occurred: {ex.Message}");
-				return false;
+				throw new DataLoadException("An unexpected error occurred while loading data.", ex);
 			}
 		}
 
-		public void checkAvailability()
+		public bool CheckAvailability(List<HotelDto> hotels, List<BookingDto> bookings, string hotelId, string roomType, DateTime startDate, DateTime endDate)
 		{
-			throw new NotImplementedException();
+			var hotel = hotels.FirstOrDefault(h => h.Id == hotelId);
+			if (hotel == null)
+			{
+				throw new HotelNotFoundException(hotelId);
+			}
+
+			if (startDate > endDate)
+			{
+				throw new InvalidDateException("Start date cannot be later than end date.");
+			}
+
+			if (!hotel.RoomTypes.Any(rt => rt.Code == roomType))
+			{
+				throw new RoomTypeNotFoundException(roomType);
+			}
+
+			foreach (var booking in bookings)
+			{
+				if (booking.HotelId == hotelId && booking.RoomType == roomType)
+				{
+					if (booking.Arrival < endDate && booking.Departure > startDate)
+					{
+						return false;
+					}
+				}
+			}
+
+			return true;
 		}
 	}
 }
