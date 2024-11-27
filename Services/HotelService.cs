@@ -7,18 +7,18 @@ namespace RecruitmentTask.Services
 {
 	public class HotelService : IHotelService
 	{
+		private const string HotelFilePath = "Data\\hotels.json";
+		private const string BookingFilePath = "Data\\bookings.json";
+
 		public bool LoadData(out List<HotelDto>? hotels, out List<BookingDto>? bookings)
 		{
 			hotels = null;
 			bookings = null;
 
-			string hotelFilePath = "Data\\hotels.json";
-			string bookingFilePath = "Data\\bookings.json";
-
 			try
 			{
-				string hotelJson = File.ReadAllText(hotelFilePath);
-				string bookingJson = File.ReadAllText(bookingFilePath);
+				string hotelJson = File.ReadAllText(HotelFilePath);
+				string bookingJson = File.ReadAllText(BookingFilePath);
 
 				hotels = JsonConvert.DeserializeObject<List<HotelDto>>(hotelJson);
 				var bookingsDynamic = JsonConvert.DeserializeObject<dynamic>(bookingJson);
