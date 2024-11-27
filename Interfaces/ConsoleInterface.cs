@@ -1,4 +1,5 @@
 ﻿using RecruitmentTask.DTOs;
+using RecruitmentTask.Exceptions;
 using RecruitmentTask.Services.Interfaces;
 
 namespace RecruitmentTask.Interfaces
@@ -14,19 +15,34 @@ namespace RecruitmentTask.Interfaces
 
 		public void Run()
 		{
-			List<HotelDto> hotels;
-			List<BookingDto> bookings;
+			var (hotels, bookings) = LoadHotelsAndBookings();
 
-			bool success = _hotelService.LoadData(out hotels, out bookings);
-
-			if (!success)
+			if (hotels == null || bookings == null)
 			{
-				Console.WriteLine("Failed to load JSONs files.");
+				Console.WriteLine("Failed to load JSON files.");
 				return;
 			}
 
 			Console.WriteLine("Check room availability");
+			HandleInput(hotels, bookings);
+		}
 
+		private (List<HotelDto>? hotels, List<BookingDto>? bookings) LoadHotelsAndBookings()
+		{
+			try
+			{
+				_hotelService.LoadData(out var hotels, out var bookings);
+				return (hotels, bookings);
+			}
+			catch (DataLoadException ex)
+			{
+				Console.WriteLine($"Error loading data: {ex.Message}");
+				return (null, null);
+			}
+		}
+
+		private void HandleInput(List<HotelDto> hotels, List<BookingDto> bookings)
+		{
 			while (true)
 			{
 				var input = Console.ReadLine();
@@ -38,45 +54,69 @@ namespace RecruitmentTask.Interfaces
 
 				try
 				{
-					if (input.StartsWith("Availability"))
-					{
-						var args = ParseArguments(input);
-
-						if (args.Length < 3)
-						{
-							Console.WriteLine("Invalid input format.");
-							continue;
-						}
-
-						var hotelId = args[0];
-						var roomType = args[2];
-						var dates = args[1].Split('-');
-						var startDate = DateTime.ParseExact(dates[0], "yyyyMMdd", null);
-						DateTime endDate;
-						if (dates.Length > 1)
-						{
-							endDate = DateTime.ParseExact(dates[1], "yyyyMMdd", null);
-						}
-						else
-						{
-							endDate = startDate;
-						}
-
-						Console.WriteLine(hotelId);
-						Console.WriteLine(roomType);
-						Console.WriteLine(startDate);
-						Console.WriteLine(endDate);
-
-					}
-					else
-					{
-						Console.WriteLine("Unknown command.");
-					}
+					ProcessCommand(input, hotels, bookings);
+				}
+				catch (HotelNotFoundException ex)
+				{
+					Console.WriteLine(ex.Message);
+				}
+				catch (RoomTypeNotFoundException ex)
+				{
+					Console.WriteLine(ex.Message);
+				}
+				catch (InvalidDateException ex)
+				{
+					Console.WriteLine(ex.Message);
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine($"Error: {ex.Message}");
 				}
+			}
+		}
+
+		private void ProcessCommand(string input, List<HotelDto> hotels, List<BookingDto> bookings)
+		{
+			if (input.StartsWith("Availability"))
+			{
+				var args = ParseArguments(input);
+
+				if (args.Length < 3)
+				{
+					Console.WriteLine("Invalid input format.");
+					return;
+				}
+
+				var hotelId = args[0];
+				var roomType = args[2];
+				var dates = args[1].Split('-');
+
+				DateTime startDate = DateTime.ParseExact(dates[0], "yyyyMMdd", null);
+				DateTime endDate;
+
+				if (dates.Length > 1)
+				{
+					endDate = DateTime.ParseExact(dates[1], "yyyyMMdd", null);
+				}
+				else
+				{
+					endDate = startDate;
+				}
+
+				var available = _hotelService.CheckAvailability(hotels, bookings, hotelId, roomType, startDate, endDate);
+
+				if (available)
+				{
+					Console.WriteLine("The selected room is available at the selected time.");
+				}
+				else
+				{
+					Console.WriteLine("The selected room is not available at the selected time.");
+				}
+			}
+			else
+			{
+				Console.WriteLine("Unknown command.");
 			}
 		}
 
