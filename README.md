@@ -13,7 +13,7 @@ These instructions will get you a copy of the project up and running on your loc
 1. Clone the repository:
 ```bash
 git clone https://github.com/Dawid-Nowotny/recruitment-task.git
-cd recruitment-task
+cd .\recruitment-task\RecruitmentTask\
 ```
 
 2. Restore the required packages:
@@ -33,6 +33,18 @@ To run the application, use the following command:
   dotnet run
   ```
 
+### Running Tests
+1. Navigate to the repository folder:
+  ```bash
+  cd recruitment-task
+  ```
+
+2. Run all tests:
+  ```bash
+  dotnet test .\Tests\
+  ```
+
 ### Dependencies
 This project uses:
 - Newtonsoft.Json (13.0.3) for JSON handling.
+- xUnit (2.9.0) for unit testing.
